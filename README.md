@@ -6,6 +6,26 @@ Action.txt lets any website safely expose **machine-readable actions** to AI age
 Where [`llms.txt`](https://github.com/AnswerDotAI/llms-txt) guides AI to *content*, **Action.txt** guides AI to *capabilities*.  
 
 ---
+## 🌟 Why We Created Action.txt
+
+The web was built for humans, but AI agents are becoming an active part of it.
+
+Right now, most AI agents interact with the web the same way humans did in 1995 — by reading pages and trying to guess what to click or fill out.  
+It works for content, but it’s fragile and risky for actions like scheduling, ordering, or retrieving private data.
+
+**We saw a gap:**
+
+- No open, vendor-neutral way to tell an AI what it *can* do on your site.
+- No safe, structured way to expose capabilities with authentication, rate limits, and human oversight.
+- No common language across platforms, so every vendor reinvents their own manifest.
+
+**Action.txt** closes that gap by:
+
+- Pairing with `llms.txt` to tell AI both *what* your site says and *what* it can do.
+- Defining an open, machine-readable manifest (`agent.json`) for actions, grounded in web standards.
+- Putting site owners in full control of what’s exposed — and how.
+
+---
 
 ## 🚀 Why Action.txt?
 
@@ -13,6 +33,19 @@ Where [`llms.txt`](https://github.com/AnswerDotAI/llms-txt) guides AI to *conten
 - **Safety** — Define authentication, rate limits, and human-review requirements per action.  
 - **Interoperability** — Vendor-neutral, built on open web standards like OpenAPI, JSON Schema, and `.well-known` URIs.  
 - **Control** — You decide exactly which actions are exposed, and how they can be used.  
+
+---
+
+## 🔮 Vision
+
+We imagine a future where:
+
+- Every website and API that wants to be agent-friendly can be, with just two small files.
+- AI agents — from personal assistants to enterprise bots — can discover and execute safe, approved actions without custom integrations.
+- Open standards prevent fragmentation between AI ecosystems, just like RSS and sitemaps did for content.
+- Safety and governance are built-in from the start, so the agent-driven web is transparent, controllable, and trustworthy.
+
+Action.txt is the first step toward that future.
 
 ---
 
@@ -142,7 +175,35 @@ See [`/CONTRIBUTING.md`](CONTRIBUTING.md) for details.
 
 ---
 
+## ❓ FAQ (Quick Answers)
+
+**Q: What is Action.txt?**  
+A: An open standard that lets any website safely expose machine-readable actions to AI agents.  
+`llms.txt` guides AI to *content* — Action.txt guides AI to *capabilities*.
+
+**Q: Why would I use it?**  
+A: To make your site agent-friendly, increase API discovery, and control exactly which actions are available — with built-in safety and authentication.
+
+**Q: Is it safe?**  
+A: Yes. Action.txt is opt-in and includes safety flags, rate limits, sandbox endpoints, and required auth scopes.
+
+**Q: Do I have to support every AI vendor?**  
+A: No. Action.txt is vendor-neutral and based on open web standards.
+
+**Q: What if I don’t want AI interacting with my service?**  
+A: Simply don’t publish an Action.txt file or `.well-known/agent.json`.
+
+**Q: How is this different from an API catalog?**  
+A: It’s a profile of existing discovery standards like `/.well-known/api-catalog` and OpenAPI, extended with AI-specific metadata such as human-review requirements and safety classifications.
+
+📚 **Full FAQ:** See [FAQ.md](FAQ.md) for detailed answers and common objections.
+
+View full faq [here](/docs/FAQ.md).
+
+---
+
 ## 📄 License
 
-* Spec text: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
-* Code examples: [MIT](LICENSE)
+- **Specification text** (`/spec`): Licensed under [CC BY 4.0](LICENSE-spec.md)
+
+- **Code samples & SDKs** (`/examples`, `/tools`): Licensed under [MIT](LICENSE-code.md)
