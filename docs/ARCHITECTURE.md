@@ -11,23 +11,25 @@ This document explains how **Action.txt** fits into your stack, how agents disco
 ```mermaid
 flowchart LR
   subgraph Site["API Provider (Your Service)"]
-    LLMS[llms.txt]
+    LLMS["llms.txt"]
     MANIFEST["/.well-known/agent.json"]
     OPENAPI["/spec/openapi.(json|yaml)"]
     API["HTTP API (per OpenAPI)"]
   end
 
-  Agent["AI Agent / Client SDK"]:::agent
-  User[End User]:::user
+  Agent["AI Agent / Client SDK"]
+  User["End User"]
 
-  User -->|Intent: 'schedule demo'| Agent
+  User -->|Intent: schedule demo| Agent
   Agent -->|Discover| LLMS
   Agent -->|Find actions link| MANIFEST
   Agent -->|Resolve operations| OPENAPI
-  Agent -->|Invoke action (auth, headers)| API
+  Agent -->|Invoke action with auth headers| API
 
-  classDef agent fill:#eef,stroke:#66f;
-  classDef user fill:#efe,stroke:#5b5;
+  classDef agent fill:#eef,stroke:#66f,stroke-width:1px;
+  classDef user fill:#efe,stroke:#5b5,stroke-width:1px;
+  class Agent agent;
+  class User user;
 ```
 
 **Key roles**
@@ -44,25 +46,25 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   autonumber
-  participant A as Agent / SDK
+  participant A as Agent/SDK
   participant W as Website
-  participant M as /.well-known/agent.json
-  participant O as /spec/openapi.json
-  participant S as Service API
+  participant M as WellKnownAgentJson
+  participant O as OpenAPI
+  participant S as ServiceAPI
 
   A->>W: GET /llms.txt (or site root)
-  W-->>A: 200; contains link to /.well-known/agent.json
+  W-->>A: 200 contains link to /.well-known/agent.json
 
   A->>M: GET /.well-known/agent.json
-  M-->>A: 200; { version, actions[], links.openapi }
+  M-->>A: 200 version + actions + links.openapi
 
   A->>O: GET /spec/openapi.json
-  O-->>A: 200; OpenAPI 3.0+
+  O-->>A: 200 OpenAPI 3.x
 
-  Note over A: Validate action.operationId ↔ OpenAPI
+  Note over A: Validate action.operationId maps to OpenAPI operation
 
-  A->>S: POST /demos<br/>Headers: Authorization, Idempotency-Key, X-Agent-Run-Id<br/>Body: ScheduleDemoInput
-  S-->>A: 201 Created (ScheduleDemoOutput)<br/>or 202 pending (human_review)
+  A->>S: POST /demos\nHeaders: Authorization, Idempotency-Key, X-Agent-Run-Id\nBody: ScheduleDemoInput
+  S-->>A: 201 ScheduleDemoOutput or 202 pending human review
 ```
 
 **Performance notes**
@@ -126,34 +128,40 @@ flowchart TB
 ```mermaid
 sequenceDiagram
   autonumber
-  participant C as Client/Agent
-  participant G as Gateway/Middleware
+  participant C as Client
+  participant M as Middleware
   participant S as Service
 
-  rect rgb(245,245,255)
-  Note over C,G,S: Idempotency (POST /demos)
-  C->>G: POST /demos (Idempotency-Key: K, Body: B)
-  G->>G: hash = H(B); lookup(K)
-  alt cache hit & same hash
-    G-->>C: 201 / 202 (cached body)
-  else no hit
-    G->>S: Forward request
-    S-->>G: 201 / 202 response
-    G->>G: store {K,H,response,ttl}
-    G-->>C: 201 / 202
+  C->>M: POST /demos (Idempotency-Key: K, Body: B)
+  M->>M: Compute hash H(B); lookup K
+  alt Cache hit and same hash
+    M-->>C: 201/202 cached response
+  else No cache entry
+    M->>S: Forward request
+    S-->>M: 201/202 response
+    M->>M: Store {K, H, response}
+    M-->>C: 201/202 response
   end
-  end
+```
 
-  rect rgb(245,255,245)
-  Note over C,G,S: Rate Limit (per action)
-  loop burst calls beyond quota
-    C->>G: POST /demos
-    alt over limit
-      G-->>C: 429 Too Many Requests (Retry-After: seconds)
-    else under limit
-      G->>S: Forward, return 2xx
+Rate limiting
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant C as Client
+  participant M as RateLimiter
+  participant S as Service
+
+  loop Burst requests
+    C->>M: POST /demos
+    alt Over limit
+      M-->>C: 429 Too Many Requests\nHeader: Retry-After
+    else Under limit
+      M->>S: Forward
+      S-->>M: 2xx
+      M-->>C: 2xx
     end
-  end
   end
 ```
 
@@ -265,15 +273,15 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  CDN[(CDN/Edge Cache)]
-  WAF[WAF/Firewall]
-  GW[API Gateway (rate limit, auth)]
-  APP[App Service (Express/FastAPI)]
-  DB[(Backing Store)]
-  Files[Static Files: agent.json & openapi]
+  CDN["CDN / Edge Cache"]
+  WAF["WAF / Firewall"]
+  GW["API Gateway / rate limit & auth"]
+  APP["App Service (Express)"]
+  DB["Backing Store"]
+  FILES["Static Files: agent.json and openapi"]
 
   CDN --> WAF --> GW --> APP --> DB
-  APP --> Files
+  APP --> FILES
 ```
 
 **Recommendations**
@@ -298,14 +306,14 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
   [*] --> Start
-  Start --> StaticFiles: GET /.well-known/agent.json & /spec/openapi.json
+  Start --> StaticFiles: GET /.well-known/agent.json and /spec/openapi.json
   StaticFiles --> Ping: GET /ping
-  Ping --> AuthNeg: GET /orders/... (no token) → 401
-  AuthNeg --> Orders: GET /orders/... (with token) → 200
+  Ping --> AuthNeg: GET /orders/... without token -> 401
+  AuthNeg --> Orders: GET /orders/... with token -> 200
   Orders --> Demos1: POST /demos with Idempotency-Key
-  Demos1 --> Demos2: repeat with same Idempotency-Key → cached 201/202
-  Demos2 --> RL: exceed rate limit → 429
-  RL --> Sandbox: POST /quotes:sandbox → 200
+  Demos1 --> Demos2: repeat same key -> cached 201 or 202
+  Demos2 --> RL: exceed rate limit -> 429
+  RL --> Sandbox: POST /quotes:sandbox -> 200
   Sandbox --> [*]
 ```
 
