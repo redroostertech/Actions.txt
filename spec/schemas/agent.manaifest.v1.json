@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://actiontxt.org/schemas/agent.manifest.v1.json",
+  "title": "Action.txt Agent Manifest v1",
+  "type": "object",
+  "$comment": "Machine-readable manifest for AI-safe actions. Keep public (no secrets), small (<100KB), cacheable with ETag and short max-age.",
+  "required": [
+    "version",
+    "name",
+    "description",
+    "links",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {
+      "$comment": "Vendor extension namespace. Producers/consumers may add/read fields here without breaking validation."
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "$comment": "Manifest schema version (major.minor). Major bump on breaking changes; minor for additive changes. Consumers MUST reject unknown major; MAY warn on newer minor."
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 120,
+      "$comment": "Human-friendly identifier; useful for logs, UIs, and directories."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000,
+      "$comment": "High-level summary of exposed capabilities; avoid marketing fluff."
+    },
+    "contact": {
+      "type": "object",
+      "$comment": "Where integrators/security can reach you.",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the agent."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the agent."
+        }
+      },
+      "additionalProperties": false
+    },
+    "links": {
+      "type": "object",
+      "required": [
+        "openapi"
+      ],
+      "$comment": "Pointers to canonical descriptors and policies.",
+      "properties": {
+        "openapi": {
+          "type": "string",
+          "format": "uri",
+          "$comment": "OpenAPI 3.0+ document (JSON/YAML). Source of truth for transport details."
+        },
+        "terms": {
+          "type": "string",
+          "format": "uri",
+          "$comment": "Terms of service."
+        },
+        "privacy": {
+          "type": "string",
+          "format": "uri",
+          "$comment": "Privacy notice."
+        },
+        "apiCatalog": {
+          "type": "string",
+          "format": "uri",
+          "$comment": "Optional RFC 9727 API Catalog linking service-desc/service-meta entries."
+        }
+      },
+      "additionalProperties": false
+    },
+    "auth": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "$comment": "Auth model for actions. Prefer OAuth2 with least-privilege scopes.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "none",
+            "api_key",
+            "oauth2"
+          ],
+          "$comment": "The type of authentication required for the action."
+        },
+        "in": {
+          "type": "string",
+          "enum": [
+            "header",
+            "query"
+          ],
+          "$comment": "Location for API key if type=api_key."
+        },
+        "header": {
+          "type": "string",
+          "$comment": "Header name for API key (e.g., X-API-Key)."
+        },
+        "param": {
+          "type": "string",
+          "$comment": "Query param name for API key."
+        },
+        "issuer": {
+          "type": "string",
+          "format": "uri",
+          "$comment": "OIDC/OAuth2 issuer URL."
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "client_credentials",
+              "authorization_code"
+            ]
+          },
+          "uniqueItems": true,
+          "$comment": "Supported OAuth2 flows."
+        },
+        "scopes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "$comment": "Map of scope -> human description. Action auth_scope values SHOULD appear here."
+        }
+      },
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "$comment": "List of callable capabilities. Each maps to a single OpenAPI operation.",
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "$comment": "Embedded JSON Schemas (Draft 2020-12) referenced by actions via $ref '#/schemas/...'. Keep concise.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "$comment": "Declarative action mapping to OpenAPI operationId with safety and governance metadata.",
+      "required": [
+        "id",
+        "title",
+        "operationId",
+        "input_schema",
+        "output_schema"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_.-]+$",
+          "maxLength": 120,
+          "$comment": "Stable, URL-safe identifier unique within this manifest. Use snake/kebab/period."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120,
+          "$comment": "Short human-readable label for UIs."
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "$comment": "Optional details about behavior, constraints, or side effects."
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "MUST resolve to exactly one operation in links.openapi."
+        },
+        "auth_scope": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Least-privilege scope required. SHOULD map to top-level auth.scopes and OpenAPI security."
+        },
+        "rate_limit": {
+          "type": "string",
+          "pattern": "^[0-9]+\\/(sec|secs|second|seconds|min|minute|minutes|hour|hours|day|days)$",
+          "$comment": "Simple RL grammar '<count>/<window>' e.g., '60/min'. Servers SHOULD emit 429 + Retry-After."
+        },
+        "idempotency": {
+          "type": "string",
+          "enum": [
+            "supported",
+            "required",
+            "none"
+          ],
+          "$comment": "For non-idempotent ops, support or require 'Idempotency-Key' to deduplicate retries."
+        },
+        "human_review": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "none"
+          ],
+          "$comment": "If 'required', producers SHOULD return 202 + review_url and complete asynchronously."
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "$comment": "Signals for agent risk handling.",
+          "properties": {
+            "pii": {
+              "type": "string",
+              "enum": [
+                "disallowed",
+                "allowed_with_consent"
+              ],
+              "$comment": "Payload sensitivity guidance."
+            },
+            "sandbox": {
+              "type": "boolean",
+              "$comment": "True if action only impacts test systems."
+            }
+          }
+        },
+        "input_schema": {
+          "type": "object",
+          "$comment": "JSON Schema for action inputs. Validator checks compatibility with OpenAPI request (path/query/body)."
+        },
+        "output_schema": {
+          "type": "object",
+          "$comment": "JSON Schema for success response. SHOULD align with OpenAPI primary 2xx response."
+        }
+      },
+      "patternProperties": {
+        "^x-": {
+          "$comment": "Vendor extensions allowed per action."
+        }
+      }
+    }
+  }
+}
