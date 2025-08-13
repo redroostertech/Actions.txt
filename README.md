@@ -13,6 +13,7 @@ Where [`llms.txt`](https://github.com/AnswerDotAI/llms-txt) guides AI to *conten
 - [🔮 Vision](#-vision)
 - [📂 How It Works](#-how-it-works)
 - [📝 Example](#-example)
+- [📐 Architecture at a Glance](#-architecture-at-a-glance)
 - [🚀 Quick Start](#-quick-start)
   - [For API Consumers](#for-api-consumers)
   - [For Contributors / Local Dev](#for-contributors--local-dev)
@@ -155,6 +156,33 @@ For machine-readable actions, see:
   }
 }
 ```
+
+---
+
+## 📐 Architecture at a Glance
+
+The **ActionTxt API** follows a clean, modular design for scalability, security, and ease of integration.
+
+**Core Components:**
+
+* **Client Applications** → Make secure calls using OAuth2.
+* **API Gateway** → Handles authentication, rate limiting, and routing.
+* **Core API Services** → Implements business logic and endpoint processing.
+* **Data Layer** → Stores persistent entities (e.g., demos, orders).
+* **Spec & Schema** → `openapi.json` and JSON Schemas ensure consistent contracts.
+
+**Flow Overview:**
+
+1. Client requests an OAuth2 token.
+2. Token-authenticated requests hit the API Gateway.
+3. Gateway routes to Core API Services.
+4. Services validate against schemas → persist or retrieve data.
+5. Response returned in standardized JSON format.
+
+**Visual Diagram:**
+![Architecture Diagram](./spec/docs/architecture-diagram.png)
+
+🔗 **Full Details:** See [Architecture.md](./docs/ARCHITECTURE.md) for component descriptions, data flow diagrams, and integration notes.
 
 ---
 
