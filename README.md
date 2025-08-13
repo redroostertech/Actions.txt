@@ -6,6 +6,26 @@ Action.txt lets any website safely expose **machine-readable actions** to AI age
 Where [`llms.txt`](https://github.com/AnswerDotAI/llms-txt) guides AI to *content*, **Action.txt** guides AI to *capabilities*.  
 
 ---
+
+## 📑 Table of Contents
+- [🌟 Why We Created Action.txt](#-why-we-created-actiontxt)
+- [🚀 Why Action.txt?](#-why-actiontxt)
+- [🔮 Vision](#-vision)
+- [📂 How It Works](#-how-it-works)
+- [📝 Example](#-example)
+- [🚀 Quick Start](#-quick-start)
+  - [For API Consumers](#for-api-consumers)
+  - [For Contributors / Local Dev](#for-contributors--local-dev)
+- [🔒 Safety by Design](#-safety-by-design)
+- [📜 Specification](#-specification)
+- [🤝 Contributing](#-contributing)
+- [📣 Community & Adoption](#-community--adoption)
+- [❓ FAQ (Quick Answers)](#-faq-quick-answers)
+  - [View Full FAQ's ](docs/FAQ.md)
+- [📄 License](#-license)
+
+---
+
 ## 🌟 Why We Created Action.txt
 
 The web was built for humans, but AI agents are becoming an active part of it.
@@ -135,6 +155,53 @@ For machine-readable actions, see:
   }
 }
 ```
+
+---
+
+## 🚀 Quick Start
+
+### For API Consumers
+If you just want to use the **ActionTxt Demo API**, follow the [detailed Quick Start](docs/quickstart.md).  
+Here’s the condensed version:
+
+```bash
+# 1. Get a token (replace CLIENT_ID / CLIENT_SECRET)
+curl -s -X POST "https://id.demo.actiontxt.org/oauth2/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=CLIENT_ID" \
+  -d "client_secret=CLIENT_SECRET" \
+  | jq .
+
+# 2. Export it
+export TOKEN="your_access_token_here"
+
+# 3. Test the API
+curl -s https://demo.actiontxt.org/ping \
+  -H "Authorization: Bearer $TOKEN" \
+  | jq .
+````
+
+**API Reference:**
+
+* Machine-readable spec: [`/spec/openapi.json`](spec/openapi.json)
+* Human-readable docs: [`/spec/docs/api.md`](spec/docs/api.md)
+* Examples: [`/examples/openapi.json`](examples/openapi.json)
+
+---
+
+### For Contributors / Local Dev
+
+If you’re working on Action.txt itself:
+
+```bash
+git clone https://github.com/<your-org>/action-txt.git
+cd action-txt
+npm install
+npm run dev
+```
+
+This runs a local minimal server with the example `.well-known/agent.json` and endpoints.
 
 ---
 

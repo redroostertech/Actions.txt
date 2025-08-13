@@ -1,0 +1,11 @@
+# About ActionTxt Demo
+This demo site exposes safe, auditable actions for AI agents. It implements read-only and transactional examples with OAuth2 scopes, rate limits, idempotency, and optional human review.
+
+## Key Docs
+- API: /openapi.json
+- Terms: https://demo.actiontxt.org/terms
+- Privacy: https://demo.actiontxt.org/privacy
+
+## Actions
+For machine-readable actions, see:
+- /.well-known/agent.json

@@ -1,0 +1,260 @@
+openapi: 3.0.3
+info:
+  title: Action.txt Demo API
+  version: 1.0.0
+  description: |
+    Reference API used by Action.txt examples and validator.
+    Endpoints include: /ping, /orders/{order_id}/status, /demos, /quotes:sandbox.
+servers:
+  - url: https://demo.actiontxt.org
+    description: Public demo server
+paths:
+  /ping:
+    get:
+      operationId: Ping_Get
+      summary: Ping
+      description: Health check. Returns a simple pong message.
+      security:
+        - oauth2: [ demo:read ]
+      responses:
+        '200':
+          description: Pong
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ message ]
+                properties:
+                  message:
+                    type: string
+                    example: pong
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /orders/{order_id}/status:
+    get:
+      operationId: Orders_GetStatus
+      summary: Get order status
+      description: Fetch the status of an order by its identifier.
+      security:
+        - oauth2: [ demo:order:read ]
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          description: Order identifier
+          schema:
+            type: string
+            pattern: '^[A-Z0-9_-]{6,32}$'
+      responses:
+        '200':
+          description: Order status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderStatus'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /demos:
+    post:
+      operationId: Demos_Create
+      summary: Create demo request
+      description: Non-idempotent creation; **requires** Idempotency-Key header.
+      security:
+        - oauth2: [ demo:schedule ]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique key to safely retry without duplicates.
+          schema:
+            type: string
+            minLength: 8
+        - name: X-Agent-Run-Id
+          in: header
+          required: false
+          description: Optional correlation ID for agent workflows.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleDemoInput'
+      responses:
+        '201':
+          description: Created
+          headers:
+            Location:
+              description: URL to the created resource
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleDemoOutput'
+        '202':
+          description: Pending human review
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ status, review_url, ticket_id ]
+                properties:
+                  status: { type: string, enum: [ pending ] }
+                  review_url: { type: string, format: uri }
+                  ticket_id: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /quotes:sandbox:
+    post:
+      operationId: Quotes_CreateSandbox
+      summary: Create sandbox quote
+      description: Generates a price quote in a sandbox environment (no production impact).
+      security:
+        - oauth2: [ demo:quote:sandbox ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteRequest'
+      responses:
+        '200':
+          description: Sandbox quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://id.demo.actiontxt.org/oauth2/token
+          scopes:
+            demo:read: Read-only demo access
+            demo:schedule: Schedule a product demo
+            demo:order:read: Read order status
+            demo:quote:sandbox: Create sandbox quotes
+
+  schemas:
+    Error:
+      type: object
+      required: [ code, message ]
+      additionalProperties: false
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details:
+          type: object
+          additionalProperties: true
+
+    OrderStatus:
+      type: object
+      required: [ order_id, status, updated_at ]
+      additionalProperties: false
+      properties:
+        order_id: { type: string }
+        status:
+          type: string
+          enum: [ pending, processing, shipped, delivered, canceled ]
+        updated_at: { type: string, format: date-time }
+
+    ScheduleDemoInput:
+      type: object
+      required: [ name, email, time_window ]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email }
+        time_window:
+          type: string
+          description: ISO8601 interval, e.g., 2025-08-16T09:00Z/2025-08-18T17:00Z
+        notes: { type: string, maxLength: 2000 }
+
+    ScheduleDemoOutput:
+      type: object
+      required: [ ticket_id, calendar_link ]
+      additionalProperties: false
+      properties:
+        ticket_id: { type: string }
+        calendar_link: { type: string, format: uri }
+
+    QuoteRequest:
+      type: object
+      required: [ sku, quantity ]
+      additionalProperties: false
+      properties:
+        sku: { type: string, maxLength: 64 }
+        quantity: { type: integer, minimum: 1, maximum: 1000 }
+
+    Quote:
+      type: object
+      required: [ quote_id, subtotal, currency, items ]
+      additionalProperties: false
+      properties:
+        quote_id: { type: string }
+        subtotal: { type: number, minimum: 0 }
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        items:
+          type: array
+          items:
+            type: object
+            required: [ sku, quantity, unit_price ]
+            additionalProperties: false
+            properties:
+              sku: { type: string }
+              quantity: { type: integer, minimum: 1 }
+              unit_price: { type: number, minimum: 0 }
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Rate limited
+      headers:
+        Retry-After:
+          description: Seconds or HTTP-date indicating when to retry
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }

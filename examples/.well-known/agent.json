@@ -1,0 +1,269 @@
+{
+    "version": "1.0",
+    "name": "ActionTxt Demo Actions",
+    "description": "Safe, auditable actions for AI agents. Includes read-only, idempotent, and sandboxed examples.",
+    "contact": {
+        "email": "devrel@actiontxt.org",
+        "url": "https://actiontxt.org"
+    },
+    "links": {
+        "openapi": "https://demo.actiontxt.org/openapi.json",
+        "terms": "https://demo.actiontxt.org/terms",
+        "privacy": "https://demo.actiontxt.org/privacy",
+        "apiCatalog": "https://demo.actiontxt.org/.well-known/api-catalog"
+    },
+    "auth": {
+        "type": "oauth2",
+        "issuer": "https://id.demo.actiontxt.org",
+        "flows": [
+            "client_credentials"
+        ],
+        "scopes": {
+            "demo:read": "Read-only demo access",
+            "demo:schedule": "Schedule a product demo",
+            "demo:order:read": "Read order status",
+            "demo:quote:sandbox": "Create a sandbox quote"
+        }
+    },
+    "actions": [
+        {
+            "id": "ping",
+            "title": "Ping",
+            "description": "Health check. Returns a simple pong.",
+            "operationId": "Ping_Get",
+            "auth_scope": "demo:read",
+            "rate_limit": "10/sec",
+            "idempotency": "none",
+            "human_review": "none",
+            "safety": {
+                "pii": "disallowed",
+                "sandbox": true
+            },
+            "input_schema": {
+                "type": "object",
+                "additionalProperties": false
+            },
+            "output_schema": {
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "const": "pong"
+                    }
+                }
+            }
+        },
+        {
+            "id": "order_status",
+            "title": "Check order status",
+            "description": "Fetch the status of an order by ID (read-only).",
+            "operationId": "Orders_GetStatus",
+            "auth_scope": "demo:order:read",
+            "rate_limit": "60/min",
+            "idempotency": "none",
+            "human_review": "none",
+            "safety": {
+                "pii": "allowed_with_consent",
+                "sandbox": false
+            },
+            "input_schema": {
+                "type": "object",
+                "required": [
+                    "order_id"
+                ],
+                "properties": {
+                    "order_id": {
+                        "type": "string",
+                        "pattern": "^[A-Z0-9_-]{6,32}$"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "output_schema": {
+                "$ref": "#/schemas/OrderStatus"
+            }
+        },
+        {
+            "id": "schedule_demo",
+            "title": "Schedule a product demo",
+            "description": "Create a demo request and return a calendar link. Non-idempotent; requires Idempotency-Key.",
+            "operationId": "Demos_Create",
+            "auth_scope": "demo:schedule",
+            "rate_limit": "60/min",
+            "idempotency": "required",
+            "human_review": "optional",
+            "safety": {
+                "pii": "allowed_with_consent",
+                "sandbox": false
+            },
+            "input_schema": {
+                "$ref": "#/schemas/ScheduleDemoInput"
+            },
+            "output_schema": {
+                "$ref": "#/schemas/ScheduleDemoOutput"
+            }
+        },
+        {
+            "id": "create_quote_sandbox",
+            "title": "Create quote (sandbox)",
+            "description": "Generates a price quote in a sandbox environment. Always safe; does not affect production.",
+            "operationId": "Quotes_CreateSandbox",
+            "auth_scope": "demo:quote:sandbox",
+            "rate_limit": "30/min",
+            "idempotency": "supported",
+            "human_review": "none",
+            "safety": {
+                "pii": "disallowed",
+                "sandbox": true
+            },
+            "input_schema": {
+                "type": "object",
+                "required": [
+                    "sku",
+                    "quantity"
+                ],
+                "properties": {
+                    "sku": {
+                        "type": "string",
+                        "maxLength": 64
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                    }
+                },
+                "additionalProperties": false
+            },
+            "output_schema": {
+                "$ref": "#/schemas/Quote"
+            }
+        }
+    ],
+    "schemas": {
+        "OrderStatus": {
+            "type": "object",
+            "required": [
+                "order_id",
+                "status",
+                "updated_at"
+            ],
+            "properties": {
+                "order_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "processing",
+                        "shipped",
+                        "delivered",
+                        "canceled"
+                    ]
+                },
+                "updated_at": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            },
+            "additionalProperties": false
+        },
+        "ScheduleDemoInput": {
+            "type": "object",
+            "required": [
+                "name",
+                "email",
+                "time_window"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                },
+                "email": {
+                    "type": "string",
+                    "format": "email"
+                },
+                "time_window": {
+                    "type": "string",
+                    "description": "ISO8601 interval, e.g., 2025-08-15T09:00Z/2025-08-18T17:00Z"
+                },
+                "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                }
+            },
+            "additionalProperties": false
+        },
+        "ScheduleDemoOutput": {
+            "type": "object",
+            "required": [
+                "ticket_id",
+                "calendar_link"
+            ],
+            "properties": {
+                "ticket_id": {
+                    "type": "string"
+                },
+                "calendar_link": {
+                    "type": "string",
+                    "format": "uri"
+                }
+            },
+            "additionalProperties": false
+        },
+        "Quote": {
+            "type": "object",
+            "required": [
+                "quote_id",
+                "subtotal",
+                "currency",
+                "items"
+            ],
+            "properties": {
+                "quote_id": {
+                    "type": "string"
+                },
+                "subtotal": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "sku",
+                            "quantity",
+                            "unit_price"
+                        ],
+                        "properties": {
+                            "sku": {
+                                "type": "string"
+                            },
+                            "quantity": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "unit_price": {
+                                "type": "number",
+                                "minimum": 0
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}
