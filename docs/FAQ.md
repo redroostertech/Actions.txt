@@ -27,7 +27,7 @@ Yes — the spec is opt-in and includes:
 
 ---
 
-## What’s the difference between Action.txt and `llms.txt`?
+## What's the difference between Action.txt and `llms.txt`?
 - **`llms.txt`** — Human-readable content guidance for AI.
 - **Action.txt** — Machine-readable action definitions for AI.
 
@@ -35,7 +35,7 @@ They complement each other to make a site fully agent-ready.
 
 ---
 
-## Isn’t this just another API catalog?
+## Isn't this just another API catalog?
 No. Action.txt is a profile of existing discovery standards like `/.well-known/api-catalog` and OpenAPI, but adds AI-specific metadata for safe autonomous execution.
 
 ---
@@ -50,35 +50,60 @@ Absolutely. Many sites will begin with read-only actions before exposing transac
 
 ---
 
-## What if I don’t want AI automating my service?
-Then simply don’t publish Action.txt or `.well-known/agent.json`. It’s entirely opt-in.
+## What if I don't want AI automating my service?
+Then simply don't publish Action.txt or `.well-known/agent.json`. It's entirely opt-in.
 
 ---
 
 # Common Objections & Responses
 
-### 1. “We already have discovery standards”
-Action.txt builds on existing standards (OpenAPI, JSON Schema, RFC 9727) — it’s not reinventing the wheel, it’s a profile with AI-specific fields.
+### 1. "We already have discovery standards"
+Action.txt builds on existing standards (OpenAPI, JSON Schema, RFC 9727) — it's not reinventing the wheel, it's a profile with AI-specific fields.
 
-### 2. “Security surface is too big”
+### 2. "Security surface is too big"
 Only sites that opt in are discoverable. The spec requires strong auth, rate limits, and human-review flags for high-risk operations.
 
-### 3. “This encourages LLMs to act without oversight”
+### 3. "This encourages LLMs to act without oversight"
 Safety is first-class: you can mark actions as read-only, sandboxed, or requiring human approval.
 
-### 4. “Vendors will ignore it”
+### 4. "Vendors will ignore it"
 Grassroots adoption through open-source agents will create pressure for wider vendor support.
 
-### 5. “We can already link APIs in `llms.txt`”
+### 5. "We can already link APIs in `llms.txt`"
 Yes, but `llms.txt` is for humans. Action.txt is machine-parseable for automated execution.
 
-### 6. “We don’t want AI automating our service”
-Don’t publish it. Participation is 100% optional.
+### 6. "We don't want AI automating our service"
+Don't publish it. Participation is 100% optional.
 
-### 7. “This will fragment the web”
+### 7. "This will fragment the web"
 Action.txt exists to prevent fragmentation — one open schema instead of many competing formats.
 
-### 8. “This is just for LLMs”
-It’s model-agnostic — any agent, multimodal system, or automation platform can consume it.
+### 8. "This is just for LLMs"
+It's model-agnostic — any agent, multimodal system, or automation platform can consume it.
+
+---
+
+## Implementation FAQ
+
+### How do I run the reference implementation?
+```bash
+cd server-node
+npm install
+cp .env.example .env
+npm run dev
+```
+
+### What are the performance characteristics?
+- Response times: <10ms for simple endpoints
+- Memory usage: ~50MB baseline
+- Rate limiting: Configurable per-endpoint
+- Idempotency: TTL-based with automatic cleanup
+
+### How do I test the implementation?
+Run the comprehensive test suite: `./test-server.sh`
+Or test individual endpoints with the provided examples.
+
+### What's the difference between the demo API and my implementation?
+The demo API shows the specification. Our reference implementation shows how to build a production-ready server that follows the specification exactly.
 
 ---
