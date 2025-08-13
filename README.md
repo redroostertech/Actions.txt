@@ -220,16 +220,45 @@ curl -s https://demo.actiontxt.org/ping \
 
 ### For Contributors / Local Dev
 
-If you’re working on Action.txt itself:
+If you're working on Action.txt itself:
 
 ```bash
 git clone https://github.com/<your-org>/action-txt.git
-cd action-txt
+cd action-txt/server-node
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-This runs a local minimal server with the example `.well-known/agent.json` and endpoints.
+This runs a **production-ready Node.js + TypeScript server** that implements:
+- All endpoints from the OpenAPI specification
+- OAuth2 Bearer token authentication
+- Per-route rate limiting with Retry-After headers
+- Idempotency support for safe retries
+- Structured logging and error handling
+- Static file serving for agent.json and OpenAPI specs
+
+**Server Features**:
+- ✅ OpenAPI 3.0.3 Compliance
+- ✅ Authentication & Authorization
+- ✅ Rate Limiting & Idempotency
+- ✅ Security Middleware (Helmet, CORS)
+- ✅ Mock Data for Testing
+- ✅ Comprehensive Error Handling
+
+**Quick Test**:
+```bash
+# Test ping (no auth required)
+curl -s http://localhost:4242/ping | jq .
+
+# Test with authentication
+export TOKEN="dev-token"
+curl -s http://localhost:4242/orders/ORD-ABC123/status \
+  -H "Authorization: Bearer $TOKEN" | jq .
+
+# Run comprehensive test suite
+./test-server.sh
+```
 
 ---
 
